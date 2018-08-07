@@ -178,12 +178,14 @@ class Wikilink:
     """Link class."""
     def __init__(self,
                  link: str,
+                 tosection: str,
                  anchor: str,
                  section_name: str,
                  section_level: int,
                  section_number: int):
         """Instantiate a link."""
         self.link = link
+        self.tosection = tosection
         self.anchor = anchor
         self.section_name = section_name
         self.section_level = section_level
@@ -201,8 +203,12 @@ class Wikilink:
 # See https://regex101.com/r/kF0yC9/12
 # The text inside the 'link' group is title of the page, it is limited to 256
 # chars since it is the max supported by MediaWiki for page titles [1].
-# Furthermore pipes and brakets (|,[,]) are invalid characters for page
-# titles [2]. Furthermore, newlines are not allowed [3].
+# Furthermore:
+#   * pipes and brakets (|,[,]) are invalid characters for page
+#     titles [2];
+#   * newlines are not allowed [3]
+#   * the pound sign (#) is not allowed in page titles, but links can point
+#     to sections and we want to capture that.
 # The anchor text allows pipes and closed brakets, but not open ones [3],
 # newlines are allowed [3].
 # See:
@@ -216,8 +222,10 @@ class Wikilink:
 wikilink_re = regex.compile(
     r'''\[\[                              # Match two opening brackets
        (?P<link>                          # <link>:
-           [^\n\|\]\[\#\<\>\{\}]{0,256}   # Text inside link group
-                                          # everything not illegal, non-greedy
+           [^\n\|\]\[\<\>\{\}]{0,256}     # Text inside link group
+                                          # everything not illegal in page
+                                          # title except pound-sign,
+                                          # non-greedy
                                           # can be empty or up to 256 chars
        )
        (?:                                # Non-capturing group
@@ -257,6 +265,14 @@ def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
     for match in wikilink_matches:
         link = match.group('link') or ''
         link = link.strip()
+
+        # split on '#' (link to section)
+        tosection = ''
+        if '#' in link:
+            splitlink = link.split('#', 1)
+            link = splitlink[0]
+            tosection = splitlink[1]
+
         anchor = match.group('anchor') or link
         # newlines in anchor are visualized as spaces.
         anchor = anchor.replace('\n', ' ').strip()
@@ -285,6 +301,7 @@ def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
         wikilink = Wikilink(
             link=link,
             anchor=anchor,
+            tosection=tosection,
             section_name=link_section_name,
             section_level=link_section_level,
             section_number=link_section_number
