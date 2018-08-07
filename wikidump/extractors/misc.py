@@ -308,3 +308,80 @@ def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
         )
 
         yield CaptureResult(wikilink, Span(link_start, match.end()))
+
+
+class Redirect:
+    """Redirect class."""
+    def __init__(self,
+                 target: str,
+                 tosection: str):
+        """Instantiate a link."""
+        self.target = target
+        self.tosection = tosection
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        template = '{class_name}(target={target!r})'
+        return template.format(
+            class_name=self.__class__.__name__,
+            target=self.target,
+        )
+
+
+# See https://regex101.com/r/YWSvyd/2
+# See the previous comment on wikilink_re about valid page titles.
+
+redirect_re = regex.compile(
+    r'''^                                 # Match the beginning of the text
+        \s*                               # Match optional spaces
+        \#REDIRECT                        # Match the exact string REDIRECT
+        \s*                               # Match optional spaces
+        \[\[                              # Match two opening brackets
+       (?P<link>                          # <link>:
+           [^\n\|\]\[\<\>\{\}]{0,256}     # Text inside link group
+                                          # everything not illegal, non-greedy
+                                          # can be empty or up to 256 chars
+       )
+       (?:                                # Non-capturing group
+          \|                              # Match a pipe
+          (?P<anchor>                     # Match an anchor without naming the group:
+              [^\[]*?                     # Test inside anchor group:
+                                          # match everything not an open braket
+                                          # - non greedy
+                                          # if empty the anchor text is link
+          )
+       )?                                 # anchor text is optional
+       \]\]                               # Match two closing brackets
+     ''', regex.VERBOSE | regex.MULTILINE | regex.IGNORECASE)
+
+
+def redirects(source: str) -> Iterator[CaptureResult[Redirect]]:
+    """Return the wikilinks found in the document."""
+    redirect_matches = peekable(redirect_re.finditer(source, concurrent=True))
+
+    for match in redirect_matches:
+        target = match.group('link') or ''
+        target = target.strip()
+        anchor = match.group('anchor') or target
+        # newlines in anchor are visualized as spaces.
+        anchor = anchor.replace('\n', ' ').strip()
+
+        # split on '#' (link to section)
+        tosection = ''
+        if '#' in target:
+            splittarget = target.split('#', 1)
+            target = splittarget[0]
+            tosection = splittarget[1]
+
+        # For some reason if wikilink has no pipe, e.g. [[apple]] the regex
+        # above captures everything in the anchor group, so we need to set
+        # the link to the same page.
+        if (anchor and not target):
+            target = anchor
+
+        redirect = Redirect(
+            target=target,
+            tosection=tosection
+        )
+
+        yield CaptureResult(redirect, Span(match.start(), match.end()))
