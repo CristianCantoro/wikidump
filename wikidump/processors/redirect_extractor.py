@@ -160,11 +160,8 @@ def main(
         'revision_id',
         'revision_parent_id',
         'revision_timestamp'
-        'user_type',
-        'user_username',
-        'user_id',
         'revision_minor',
-        'redirect.link',
+        'redirect.target',
         'redirect.tosection'
         ))
 
@@ -206,9 +203,6 @@ def main(
                     revision.id,
                     revision.parent_id,
                     revision.timestamp,
-                    user_type,
-                    user_username,
-                    user_id,
                     revision_minor,
                     redirect.target,
                     redirect.tosection
