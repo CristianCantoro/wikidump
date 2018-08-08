@@ -131,6 +131,8 @@ def main():
             stats_output,
             args,
         )
+        utils.log("Done Analyzing {}.".format(input_file_path))
+
 
 
 if __name__ == '__main__':
