@@ -125,7 +125,7 @@ def configure_subparsers(subparsers):
     """Configure a new subparser."""
     parser = subparsers.add_parser(
         'extract-redirects',
-        help='Extract internal links (wikilinks)',
+        help='Extract redirects.',
     )
     parser.add_argument(
         '-l', '--language',
