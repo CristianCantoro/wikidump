@@ -34,4 +34,5 @@ setup(
         'python-Levenshtein==0.12.0',
         'typing==3.5.0.1',
     ],
+    zip_safe=False,
 )
