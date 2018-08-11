@@ -1,5 +1,7 @@
+# ignore input, output, misc and tmp dirs
 dumps/
 output/
+misc/
 tmp/
 
 #### joe made this: https://goel.io/joe
