@@ -16,7 +16,6 @@ from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
-
 stats_template = '''
 <stats>
     <performance>
@@ -39,7 +38,7 @@ Revision = NamedTuple('Revision', [
     ('format', str),
     ('timestamp', jsonable.Type),
     ('text', str),
-    ('redirects', Iterable[extractors.misc.Redirect])
+    ('redirects', Iterable[extractors.redirect.Redirect])
 ])
 
 
@@ -70,7 +69,7 @@ def extract_revisions(
 
         redirects = (redirect
                      for redirect, _
-                     in extractors.redirects(text))
+                     in extractors.redirect.redirects(text, language=language))
 
         # redirects_list = list(redirects)
         # if redirects_list:

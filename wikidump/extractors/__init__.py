@@ -1,2 +1,2 @@
-from . import arxiv, doi, isbn, pubmed, misc
+from . import arxiv, doi, isbn, pubmed, misc, redirect
 from .misc import *
