@@ -131,6 +131,11 @@ def main():
             stats_output,
             args,
         )
+
+        # explicitly close output files
+        pages_output.close()
+        stats_output.close()
+
         utils.log("Done Analyzing {}.".format(input_file_path))
 
 
