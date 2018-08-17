@@ -132,6 +132,9 @@ def main():
             args,
         )
 
+        # explictly close input file
+        dump.close()
+
         # explicitly close output files
         pages_output.close()
         stats_output.close()
