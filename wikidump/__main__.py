@@ -132,8 +132,8 @@ def main():
             args,
         )
 
-        # explictly close input file
-        dump.close()
+        # dump is not a file-like object, cannot explictly close input file
+        # dump.close()
 
         # explicitly close output files
         pages_output.close()
