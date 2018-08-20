@@ -1,10 +1,11 @@
 """Main module that parses command line arguments."""
-import argparse
-import codecs
 import os
-import subprocess
-import gzip
 import io
+import bz2
+import gzip
+import codecs
+import argparse
+import subprocess
 
 import mw.xml_dump
 import mwxml
@@ -37,6 +38,8 @@ def output_writer(path: str, compression: Optional[str]):
     """Write data to a compressed file."""
     if compression == '7z':
         return compressor_7z(path + '.7z')
+    if compression == 'bz2':
+        return bz2.open(path + '.bz2', 'wt', encoding='utf-8')
     elif compression == 'gzip':
         return gzip.open(path + '.gz', 'wt', encoding='utf-8')
     else:
@@ -61,7 +64,7 @@ def get_args():
         metavar='FILE',
         type=pathlib.Path,
         nargs='+',
-        help='XML Wikidump file to parse. It accepts only 7z.',
+        help='XML Wikidump file to parse. It accepts 7z or bzip2.',
     )
     parser.add_argument(
         'output_dir_path',
@@ -71,7 +74,7 @@ def get_args():
     )
     parser.add_argument(
         '--output-compression',
-        choices={None, '7z', 'gzip'},
+        choices={None, '7z', 'bz2', 'gzip'},
         required=False,
         default=None,
         help='Output compression format.',
