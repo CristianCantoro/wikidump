@@ -1,4 +1,4 @@
-supported = {'en', 'it'}
+supported = {'de', 'en', 'es', 'fr', 'it', 'nl', 'pl', 'ru', 'sv'}
 
 bibliography = {
     'en': {
