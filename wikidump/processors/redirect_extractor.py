@@ -53,27 +53,18 @@ Page = NamedTuple('Page', [
 def extract_revisions(
         mw_page: mwxml.Page,
         language: str,
-        stats: Mapping,
-        only_last_revision: bool) -> Iterator[Revision]:
+        stats: Mapping) -> Iterator[Revision]:
     """Extract the internall links (wikilinks) from the revisions."""
 
     revisions = more_itertools.peekable(mw_page)
     for mw_revision in revisions:
         utils.dot()
 
-        is_last_revision = not utils.has_next(revisions)
-        if only_last_revision and not is_last_revision:
-            continue
-
         text = utils.remove_comments(mw_revision.text or '')
 
         redirects = (redirect
                      for redirect, _
                      in extractors.redirect.redirects(text, language=language))
-
-        # redirects_list = list(redirects)
-        # if redirects_list:
-        #     import ipdb; ipdb.set_trace()
 
         yield Revision(
             id=mw_revision.id,
@@ -93,8 +84,7 @@ def extract_revisions(
 def extract_pages(
         dump: Iterable[mwxml.Page],
         language: str,
-        stats: Mapping,
-        only_last_revision: bool) -> Iterator[Page]:
+        stats: Mapping) -> Iterator[Page]:
     """Extract revisions from a page."""
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
@@ -107,8 +97,7 @@ def extract_pages(
         revisions_generator = extract_revisions(
             mw_page,
             language=language,
-            stats=stats,
-            only_last_revision=only_last_revision,
+            stats=stats
         )
 
         yield Page(
@@ -131,11 +120,6 @@ def configure_subparsers(subparsers):
         choices=languages.supported,
         required=True,
         help='The language of the dump.',
-    )
-    parser.add_argument(
-        '--only-last-revision',
-        action='store_true',
-        help='Consider only the last revision for each page.',
     )
     parser.set_defaults(func=main)
 
@@ -162,7 +146,6 @@ def main(
         dump,
         language=args.language,
         stats=stats,
-        only_last_revision=args.only_last_revision,
     )
 
     writer.writerow((
@@ -177,21 +160,10 @@ def main(
         ))
 
     for mw_page in pages_generator:
-        for revision in mw_page.revisions:
+        hasredirect_rev = None
+        hasredirect_prevrev = None
 
-            if revision.user is None:
-                user_type = 'None'
-                user_username = 'None'
-                user_id = -2
-            else:
-                if revision.user.id is not None:
-                    user_type = 'registered'
-                    user_username = revision.user.text
-                    user_id = revision.user.id
-                else:
-                    user_type = 'ip'
-                    user_username = revision.user.text
-                    user_id = -1
+        for revision in sorted(mw_page.revisions, key=lambda r: r.timestamp):
 
             revision_parent_id = revision.parent_id
             if revision.parent_id is None:
@@ -202,22 +174,49 @@ def main(
             else:
                 revision_minor = 0
 
-            for redirect in revision.redirects:
-                # project,page.id,page.title,revision.id,revision.parent_id,
-                # revision.timestamp,contributor_if_exists(revision.user),
-                # revision.minor,wikilink.link,wikilink.anchor,
-                # wikilink.section_name,wikilink.section_level,
-                # wikilink.section_number
-                writer.writerow((
-                    mw_page.id,
-                    mw_page.title,
-                    revision.id,
-                    revision.parent_id,
-                    revision.timestamp,
-                    revision_minor,
-                    redirect.target,
-                    redirect.tosection
-                ))
+            redirect_list = [red for red in revision.redirects]
+            if len(redirect_list) > 0:
+                # there is a redirect in this revision
+                for redirect in redirect_list:
+                    hasredirect_rev = True
+
+                    redirect_target = redirect.target
+                    redirect_tosection = redirect.tosection
+                    # project,page.id,page.title,revision.id,revision.parent_id,
+                    # revision.timestamp,contributor_if_exists(revision.user),
+                    # revision.minor,wikilink.link,wikilink.anchor,
+                    # wikilink.section_name,wikilink.section_level,
+                    # wikilink.section_number
+                    writer.writerow((
+                        mw_page.id,
+                        mw_page.title,
+                        revision.id,
+                        revision.parent_id,
+                        revision.timestamp,
+                        revision_minor,
+                        redirect_target,
+                        redirect_tosection
+                    ))
+            else:
+                # no redirect in this revision
+                hasredirect_rev = False
+                if hasredirect_prevrev:
+
+                    redirect_target = '#NOREDIRECT'
+                    redirect_tosection = ''
+                    writer.writerow((
+                        mw_page.id,
+                        mw_page.title,
+                        revision.id,
+                        revision.parent_id,
+                        revision.timestamp,
+                        revision_minor,
+                        redirect_target,
+                        redirect_tosection
+                    ))
+
+            hasredirect_prevrev = hasredirect_rev
+
     stats['performance']['end_time'] = datetime.datetime.utcnow()
 
     with stats_output_h:
