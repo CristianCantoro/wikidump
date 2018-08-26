@@ -1,5 +1,6 @@
 # ignore input, output, misc and tmp dirs
 dumps/
+input/
 output/
 misc/
 tmp/
