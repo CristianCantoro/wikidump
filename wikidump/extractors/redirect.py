@@ -1,10 +1,15 @@
 """Redirect extractors."""
 
 import regex
+import argparse
+
 from more_itertools import peekable
 from typing import Iterable, Iterator
 
-from .common import CaptureResult, Span
+if __name__ == '__main__':
+    from common import CaptureResult, Span
+else:
+    from .common import CaptureResult, Span
 
 # Synonims for #REDIRECT for the various languages
 # (h/t to Reedy from #mediawiki on freebode)
@@ -91,11 +96,14 @@ for lang, word_list in redirect_magicwords.items():
                                                    1
                                                    )
   redirect_res[lang] = regex.compile(
-      redirect_pattern, (regex.VERBOSE|regex.MULTILINE|regex.IGNORECASE))
+      redirect_pattern, (regex.VERBOSE|regex.IGNORECASE|regex.MULTILINE))
 
 
 def redirects(source: str, language: str) -> Iterator[CaptureResult[Redirect]]:
-    """Return the wikilinks found in the document."""
+    """Return the redirects found in the document."""
+
+    assert (language in redirect_magicwords), \
+           'Language {} not in allowed choices.'.format(language)
 
     redirect_re = redirect_res[language]
     redirect_matches = peekable(redirect_re.finditer(source, concurrent=True))
@@ -126,3 +134,33 @@ def redirects(source: str, language: str) -> Iterator[CaptureResult[Redirect]]:
         )
 
         yield CaptureResult(redirect, Span(match.start(), match.end()))
+
+
+if __name__ == '__main__':
+    import pathlib
+
+    parser = argparse.ArgumentParser(
+        description='Extract redirects from a wikipage')
+    parser.add_argument("FILE",
+                        type=pathlib.Path,
+                        help="Input file."
+                        )
+    parser.add_argument('-l', '--language',
+                        default='en',
+                        choices=[l for l in redirect_magicwords.keys()],
+                        help="The language of the text [default: 'en']."
+                        )
+
+    args = parser.parse_args()
+
+    infile = args.FILE
+    language = args.language
+
+    with infile.open('r') as infp:
+      text = infp.read()
+
+    for redirect in redirects(text, language=language):
+        target = redirect.data.target
+        print('-> {}'.format(target))
+
+    exit(0)

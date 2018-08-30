@@ -1,4 +1,4 @@
-"""Extract wikilinks from pages.
+"""Extract redirects from pages.
 
 The output format is csv.
 """
