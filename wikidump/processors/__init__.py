@@ -1,9 +1,10 @@
 from . import (
     bibliography_extractor,
     identifiers_extractor,
-    sections_counter,
-    page_ids_extractor,
     identifiers_history_extractor,
-    wikilink_extractor,
+    page_ids_extractor,
     redirect_extractor,
+    revisionlist_extractor,
+    sections_counter,
+    wikilink_extractor,
 )

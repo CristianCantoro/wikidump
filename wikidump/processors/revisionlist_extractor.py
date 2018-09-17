@@ -96,7 +96,7 @@ def configure_subparsers(subparsers):
     """Configure a new subparser."""
     parser = subparsers.add_parser(
         'extract-revisionlist',
-        help='Extract basic info about revisions',
+        help='Extract basic info about revisions.',
     )
     parser.add_argument(
         '-l', '--language',
