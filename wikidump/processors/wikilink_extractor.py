@@ -171,7 +171,7 @@ def main(
         'page_title',
         'revision_id',
         'revision_parent_id',
-        'revision_timestamp'
+        'revision_timestamp',
         'user_type',
         'user_username',
         'user_id',
