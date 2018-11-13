@@ -16,6 +16,19 @@ from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
+
+stats_template = '''
+<stats>
+    <performance>
+        <start_time>${stats['performance']['start_time'] | x}</start_time>
+        <end_time>${stats['performance']['end_time'] | x}</end_time>
+        <revisions_analyzed>${stats['performance']['revisions_analyzed'] | x}</revisions_analyzed>
+        <pages_analyzed>${stats['performance']['pages_analyzed'] | x}</pages_analyzed>
+    </performance>
+</stats>
+'''
+
+
 Revision = NamedTuple('Revision', [
     ('id', int),
     ('parent_id', int),
@@ -61,6 +74,7 @@ def extract_revisions(
             format=mw_revision.format,
             timestamp=mw_revision.timestamp.to_json()
         )
+        stats['performance']['revisions_analyzed'] += 1
 
 
 def extract_pages(
@@ -90,6 +104,7 @@ def extract_pages(
             title=mw_page.title,
             revisions=revisions_generator,
         )
+        stats['performance']['pages_analyzed'] += 1
 
 
 def configure_subparsers(subparsers):
@@ -125,11 +140,8 @@ def main(
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
         },
-        'section_names': {
-            'global': collections.Counter(),
-            'last_revision': collections.Counter(),
-        },
     }
+    stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     writer = csv.writer(features_output_h)
 
@@ -189,3 +201,12 @@ def main(
                 user_id,
                 revision_minor
             ))
+
+    stats['performance']['end_time'] = datetime.datetime.utcnow()
+
+    with stats_output_h:
+        dumper.render_template(
+            stats_template,
+            stats_output_h,
+            stats=stats,
+        )
