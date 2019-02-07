@@ -7,6 +7,7 @@ import csv
 import collections
 import datetime
 import functools
+import arrow
 
 import fuzzywuzzy.process
 import jsonable
@@ -29,12 +30,29 @@ stats_template = '''
 '''
 
 
+csv_output_fields = ['page_id',
+                     'page_title',
+                     'revision_id',
+                     'revision_parent_id',
+                     'revision_timestamp',
+                     'user_type',
+                     'user_username',
+                     'user_id',
+                     'revision_minor',
+                     'bytes'
+                     ]
+
+
+csv_output_fields_with_change = csv_output_fields + ['change_bytes']
+
+
 Revision = NamedTuple('Revision', [
     ('id', int),
     ('parent_id', int),
     ('user', Optional[mwxml.Revision.User]),
     ('minor', bool),
     ('comment', str),
+    ('nbytes', int),
     ('model', str),
     ('format', str),
     ('timestamp', jsonable.Type),
@@ -64,11 +82,21 @@ def extract_revisions(
         if only_last_revision and not is_last_revision:
             continue
 
+        nbytes = -1
+        try:
+            if mw_revision.text:
+                nbytes = len(mw_revision.text.encode('utf-8'))
+            else:
+                nbytes = 0
+        except:
+            import ipdb; ipdb.set_trace()
+
         yield Revision(
             id=mw_revision.id,
             parent_id=mw_revision.parent_id,
             user=mw_revision.user,
             minor=mw_revision.minor,
+            nbytes=nbytes,
             comment=mw_revision.comment,
             model=mw_revision.model,
             format=mw_revision.format,
@@ -124,6 +152,17 @@ def configure_subparsers(subparsers):
         action='store_true',
         help='Consider only the last revision for each page.',
     )
+    parser.add_argument(
+        '-s', '--ensure-sorted',
+        action='store_true',
+        help='Ensure that the revisions are sorted by time for each page.',
+    )
+    parser.add_argument(
+        '-c', '--change-bytes',
+        action='store_true',
+        help='Calculate the difference in bytes between each revision '
+             '(implies --ensure-sorted)',
+    )
     parser.set_defaults(func=main)
 
 
@@ -152,19 +191,19 @@ def main(
         only_last_revision=args.only_last_revision,
     )
 
-    writer.writerow((
-        'page_id',
-        'page_title',
-        'revision_id',
-        'revision_parent_id',
-        'revision_timestamp',
-        'user_type',
-        'user_username',
-        'user_id',
-        'revision_minor'
-        ))
+    # --change-bytes implies --ensure-sorted
+    if args.change_bytes:
+        args.ensure_sorted = True
+
+    # write output header
+    if args.change_bytes:
+        writer.writerow(csv_output_fields_with_change)
+    else:
+        writer.writerow(csv_output_fields)
 
     for mw_page in pages_generator:
+        page_revision_list = []
+
         for revision in mw_page.revisions:
 
             if revision.user is None:
@@ -190,17 +229,52 @@ def main(
             else:
                 revision_minor = 0
 
-            writer.writerow((
-                mw_page.id,
-                mw_page.title,
-                revision.id,
-                revision.parent_id,
-                revision.timestamp,
-                user_type,
-                user_username,
-                user_id,
-                revision_minor
-            ))
+            revout = [mw_page.id,
+                      mw_page.title,
+                      revision.id,
+                      revision.parent_id,
+                      revision.timestamp,
+                      user_type,
+                      user_username,
+                      user_id,
+                      revision_minor,
+                      revision.nbytes
+                      ]
+
+            # change_bytes is redundant with respect to ensure_sorted, but we
+            # repeat it here for clarity
+            if args.ensure_sorted or args.change_bytes:
+                page_revision_list.append(revout)
+            else:
+                writer.writerow(revout)
+
+        if page_revision_list:
+
+            # revout:
+            #   - 0: mw_page.id,
+            #   - 1: mw_page.title,
+            #   - 2: revision.id,
+            #   - 3: revision.parent_id,
+            #   - 4: revision.timestamp,
+            #   - 5: user_type,
+            #   - 6: user_username,
+            #   - 7: user_id,
+            #   - 8: revision_minor,
+            #   - 9: bytes
+            page_revision_list.sort(key=lambda revout: arrow.get(revout[4]))
+            prev_nbites = None
+            for revout in page_revision_list:
+                if args.change_bytes:
+                    nbytes = revout[9]
+                    if prev_nbites is None:
+                        change = nbytes
+                    else:
+                        change = nbytes - prev_nbites
+
+                    writer.writerow(revout + [change])
+                    prev_nbites = nbytes
+                else:
+                    writer.writerow(revout)
 
     stats['performance']['end_time'] = datetime.datetime.utcnow()
 
