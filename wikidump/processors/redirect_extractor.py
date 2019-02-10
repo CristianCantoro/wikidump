@@ -153,7 +153,7 @@ def main(
         'page_title',
         'revision_id',
         'revision_parent_id',
-        'revision_timestamp'
+        'revision_timestamp',
         'revision_minor',
         'redirect.target',
         'redirect.tosection'
