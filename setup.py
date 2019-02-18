@@ -28,7 +28,7 @@ setup(
         'mwcli==0.0.1',
         'mwtypes==0.2.0',
         'mwxml==0.2.0',
-        'regex==2015.9.28',
+        'regex==2018.8.17',
         'more-itertools==2.2',
         'fuzzywuzzy==0.8.0',
         'python-Levenshtein==0.12.0',
