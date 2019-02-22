@@ -382,18 +382,20 @@ def wikilinks(page_title: str,
             space_post_pos = simple_match.end()
 
         match = None
-        subtext = source[space_prev_pos:space_post_pos]
+        # subtext = source[space_prev_pos:space_post_pos]
         if debug:
             try:
                 match = timeout.wrap_timeout(
                     wikilink_re.search,
                     REGEX_TIMEOUT,
-                    [subtext]
+                    [source[space_prev_pos:space_post_pos]]
                     )
             except CallTimeout as exception:
                 import ipdb; ipdb.set_trace()
         else:
-            match = wikilink_re.search(subtext)
+            match = wikilink_re.search(
+                source[space_prev_pos:space_post_pos]
+                )
 
         if match is None:
             simple_match_text = (simple_match.group(0)
@@ -410,8 +412,6 @@ def wikilinks(page_title: str,
                     simple_match_text.find('{') or \
                     simple_match_text.find('}'):
                 continue
-            else:
-                import ipdb; ipdb.set_trace()
 
         else:
             prevmatch_start = match.start()
