@@ -14,7 +14,7 @@ import more_itertools
 import fuzzywuzzy.process
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
-from .. import dumper, extractors, languages, utils
+from .. import dumper, extractors, utils
 
 
 stats_template = '''
@@ -53,7 +53,6 @@ Page = NamedTuple('Page', [
 
 def extract_revisions(
         mw_page: mwxml.Page,
-        language: str,
         stats: Mapping,
         only_last_revision: bool,
         debug: bool) -> Iterator[Revision]:
@@ -96,7 +95,6 @@ def extract_revisions(
 
 def extract_pages(
         dump: Iterable[mwxml.Page],
-        language: str,
         stats: Mapping,
         only_last_revision: bool,
         debug: bool) -> Iterator[Page]:
@@ -111,7 +109,6 @@ def extract_pages(
 
         revisions_generator = extract_revisions(
             mw_page,
-            language=language,
             stats=stats,
             only_last_revision=only_last_revision,
             debug=debug,
@@ -131,12 +128,6 @@ def configure_subparsers(subparsers):
     parser = subparsers.add_parser(
         'extract-wikilinks',
         help='Extract internal links (wikilinks)',
-    )
-    parser.add_argument(
-        '-l', '--language',
-        choices=languages.supported,
-        required=True,
-        help='The language of the dump.',
     )
     parser.add_argument(
         '-d', '--debug',
@@ -175,7 +166,6 @@ def main(
 
     pages_generator = extract_pages(
         dump,
-        language=args.language,
         stats=stats,
         only_last_revision=args.only_last_revision,
         debug=args.debug,
