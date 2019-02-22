@@ -4,14 +4,14 @@ The output format is csv.
 """
 
 import csv
-import collections
 import datetime
 import functools
+import collections
 
-import fuzzywuzzy.process
+import mwxml
 import jsonable
 import more_itertools
-import mwxml
+import fuzzywuzzy.process
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
@@ -55,7 +55,8 @@ def extract_revisions(
         mw_page: mwxml.Page,
         language: str,
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Revision]:
+        only_last_revision: bool,
+        debug: bool) -> Iterator[Revision]:
     """Extract the internall links (wikilinks) from the revisions."""
 
     revisions = more_itertools.peekable(mw_page)
@@ -70,7 +71,13 @@ def extract_revisions(
 
         wikilinks = (wikilink
                      for wikilink, _
-                     in extractors.wikilinks(text, extractors.sections(text)))
+                     in extractors.wikilinks(
+                            page_title=mw_page.title,
+                            source=text,
+                            sections=extractors.sections(text),
+                            debug=debug,
+                            )
+                     )
 
         yield Revision(
             id=mw_revision.id,
@@ -91,7 +98,8 @@ def extract_pages(
         dump: Iterable[mwxml.Page],
         language: str,
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Page]:
+        only_last_revision: bool,
+        debug: bool) -> Iterator[Page]:
     """Extract revisions from a page."""
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
@@ -106,6 +114,7 @@ def extract_pages(
             language=language,
             stats=stats,
             only_last_revision=only_last_revision,
+            debug=debug,
         )
 
         yield Page(
@@ -128,6 +137,11 @@ def configure_subparsers(subparsers):
         choices=languages.supported,
         required=True,
         help='The language of the dump.',
+    )
+    parser.add_argument(
+        '-d', '--debug',
+        action='store_true',
+        help='Activate debug mode.',
     )
     parser.add_argument(
         '--only-last-revision',
@@ -164,6 +178,7 @@ def main(
         language=args.language,
         stats=stats,
         only_last_revision=args.only_last_revision,
+        debug=args.debug,
     )
 
     writer.writerow((
