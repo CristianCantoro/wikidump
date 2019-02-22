@@ -364,18 +364,13 @@ def wikilinks(page_title: str,
 
         # we actually want the last occurrence of a space before a parenthesys
         # so we reverse the string and we search for the first occurrence.
-        # revtext = source[prevmatch_start:simple_match.start()][::-1]
         space_prev_match = space_rtl_re.search(
             source[prevmatch_start:simple_match.start()]
             )
         if space_prev_match:
-            spacepos = space_prev_match.start()
-            space_prev_match_pos = reverse_position(spacepos, len(revtext))
-
             space_prev_pos = prevmatch_start + space_prev_match.start()
         else:
             space_prev_pos = simple_match.start()
-        del revtext
 
         space_post_match = space_re.search(
             source[simple_match.end():]
