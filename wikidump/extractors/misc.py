@@ -412,6 +412,9 @@ def wikilinks(page_title: str,
                     simple_match_text.find('{') or \
                     simple_match_text.find('}'):
                 continue
+            else:
+                # this is unexpected
+                raise ValueError('Unexpected empty match')
 
         else:
             prevmatch_start = match.start()
