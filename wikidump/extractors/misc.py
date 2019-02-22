@@ -397,6 +397,8 @@ def wikilinks(page_title: str,
                 source[space_prev_pos:space_post_pos]
                 )
 
+        # more memorable name
+        wikilink_re_start = space_prev_pos
         if match is None:
             simple_match_text = (simple_match.group(0)
                                  .strip()
@@ -417,8 +419,8 @@ def wikilinks(page_title: str,
                 raise ValueError('Unexpected empty match')
 
         else:
-            prevmatch_start = match.start()
-            prevmatch_end = match.end()
+            prevmatch_start = wikilink_re_start + match.start()
+            prevmatch_end = wikilink_re_start + match.end()
 
             link = match.group('link') or ''
             link = link.strip()
@@ -438,8 +440,8 @@ def wikilinks(page_title: str,
             anchor = anchor.replace('\n', ' ')
             anchor = ' '.join(anchor.strip().split())
 
-            total_start = match.start('total')
-            total_end = match.end('total')
+            total_start = wikilink_re_start + match.start('total')
+            total_end = wikilink_re_start + match.end('total')
 
             link_section_number = 0
             link_section_name = '---~--- incipit ---~---'
@@ -479,10 +481,12 @@ def wikilinks(page_title: str,
                 section_number=link_section_number
             )
 
-            anchor_prefix = (source[match.start('total'):match.start('wikilink')]
+            anchor_prefix = (source[wikilink_re_start+match.start('total'):
+                                    wikilink_re_start+match.start('wikilink')]
                              .strip('[')
                              )
-            anchor_suffix = (source[match.end('wikilink'):match.end('total')]
+            anchor_suffix = (source[wikilink_re_start+match.end('wikilink'):
+                                    wikilink_re_start+match.end('total')]
                              .strip(']')
                              )
             anchor = anchor_prefix + anchor + anchor_suffix
