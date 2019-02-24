@@ -22,6 +22,7 @@ setup(
         ],
     },
     install_requires=[
+        'arrow==0.13.1',
         'Mako==1.0.2',
         'mediawiki-utilities==0.4.18',
         'mwcites==0.2.0',
