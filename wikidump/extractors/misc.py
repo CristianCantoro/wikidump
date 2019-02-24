@@ -240,9 +240,7 @@ REGEX_TIMEOUT = 5
 
 
 wikilink_re = regex.compile(
-    r'''\s?                                 # Match optional space
-        (?P<total>                          # named group <total>:
-        \S*?                                # Match any non-space non-greedily
+    r'''(?P<total>                          # named group <total>:
           (?P<wikilink>                     # <wikilink>:
                                             # Match the whole wikilink
                                             # - including brackets
@@ -253,7 +251,7 @@ wikilink_re = regex.compile(
                                             # title except pound-sign,
                                             # non-greedy
                                             # can be empty or up to 256 chars
-            )
+            )                               #
             (?:                             # Non-capturing group
                \|                           # Match a pipe
                (?P<anchor>                  # <anchor>:
@@ -261,11 +259,13 @@ wikilink_re = regex.compile(
                                             # match everything not an open
                                             # bracket - non greedily
                                             # if empty the anchor text is link
-              )
+              )                             #
             )?                              # anchor text is optional
             \]\]                            # Match two closing brackets
           )                                 # Close wikilink group
-        \S*)                                # Any additional non-space
+        \W*                                 # Any additional non-alpahnumeric
+                                            # character limits the anchor
+        )                                   # Close total
         \s?                                 # Match optional space
      ''', regex.VERBOSE | regex.MULTILINE)
 
@@ -277,11 +277,12 @@ wikilink_simple_re = regex.compile(
      ''', regex.VERBOSE | regex.MULTILINE)
 
 
-space_re = regex.compile(r'\s')
+# match any non-alphanumeric character
+endanchor_re = regex.compile(r'\W')
 
 # the regex module supports reverse search
 # https://pypi.org/project/regex/
-space_rtl_re = regex.compile(r"(?r)\s")
+# space_rtl_re = regex.compile(r"(?r)\s")
 
 
 SectionLimits = NamedTuple('SectionLimits', [
@@ -362,43 +363,36 @@ def wikilinks(page_title: str,
     prevmatch_end = 0
     for simple_match in wikilink_simple_matches:
 
-        # we actually want the last occurrence of a space before a parenthesys
-        # so we reverse the string and we search for the first occurrence.
-        space_prev_match = space_rtl_re.search(
-            source[prevmatch_start:simple_match.start()]
-            )
-        if space_prev_match:
-            space_prev_pos = prevmatch_start + space_prev_match.start()
-        else:
-            space_prev_pos = simple_match.start()
+        # start at opening square brakcets '[['
+        prev_pos = simple_match.start()
 
-        space_post_match = space_re.search(
+        post_match = endanchor_re.search(
             source[simple_match.end():]
             )
-        if space_post_match:
-            space_post_pos = simple_match.end() + space_post_match.start()
+        if post_match:
+            post_pos = simple_match.end() + post_match.start()
         else:
             # end of text
-            space_post_pos = simple_match.end()
+            post_pos = simple_match.end()
 
         match = None
-        # subtext = source[space_prev_pos:space_post_pos]
+        # subtext = source[prev_pos:post_pos]
         if debug:
             try:
                 match = timeout.wrap_timeout(
                     wikilink_re.search,
                     REGEX_TIMEOUT,
-                    [source[space_prev_pos:space_post_pos]]
+                    [source[prev_pos:post_pos]]
                     )
             except CallTimeout as exception:
                 import ipdb; ipdb.set_trace()
         else:
             match = wikilink_re.search(
-                source[space_prev_pos:space_post_pos]
+                source[prev_pos:post_pos]
                 )
 
         # more memorable name
-        wikilink_re_start = space_prev_pos
+        wikilink_re_start = prev_pos
         if match is None:
             simple_match_text = (simple_match.group(0)
                                  .strip()
