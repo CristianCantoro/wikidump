@@ -263,8 +263,9 @@ wikilink_re = regex.compile(
             )?                              # anchor text is optional
             \]\]                            # Match two closing brackets
           )                                 # Close wikilink group
-        \W*                                 # Any additional non-alpahnumeric
-                                            # character limits the anchor
+        \w*                                 # Any additional alpahnumeric
+                                            # character, non-alphanumeric
+                                            # chars limit the anchor
         )                                   # Close total
         \s?                                 # Match optional space
      ''', regex.VERBOSE | regex.MULTILINE)
