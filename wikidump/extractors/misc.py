@@ -210,7 +210,7 @@ class Wikilink:
             anchor=self.anchor,
         )
 
-# See https://regex101.com/r/kF0yC9/14
+# See https://regex101.com/r/kF0yC9/15
 #
 # The group 'total' matches everything that is around the link, delimited by
 # spaces, this is because the actual anchor text can be built prepending or
