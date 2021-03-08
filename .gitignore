@@ -5,6 +5,9 @@ output/
 misc/
 tmp/
 
+# ignore pyenv files
+.python-version
+
 #### joe made this: https://goel.io/joe
 
 #####=== Python ===#####
