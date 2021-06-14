@@ -69,7 +69,7 @@ optional arguments:
   --dry-run, -n         Don't write any file
 ```
 
-Each subcommand has its own help:
+Each subcommand has its own help message, watch out for required arguments:
 
 ```plain
 $ python3 -m wikidump extract-bibliography -h
