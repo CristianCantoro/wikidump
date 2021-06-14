@@ -3,6 +3,7 @@ import os
 import io
 import bz2
 import gzip
+import sys
 import codecs
 import argparse
 import subprocess
@@ -55,6 +56,9 @@ def create_path(path: Union[pathlib.Path, str]):
 
 def get_args():
     """Parse command line arguments."""
+    ERR_NO_FILES = 1
+    ERR_NO_FUNC = 2
+
     parser = argparse.ArgumentParser(
         prog='wikidump',
         description='Wikidump features extractor.',
@@ -63,21 +67,21 @@ def get_args():
         'files',
         metavar='FILE',
         type=pathlib.Path,
-        nargs='+',
+        nargs='*',
         help='XML Wikidump file to parse. It accepts 7z or bzip2.',
     )
     parser.add_argument(
-        'output_dir_path',
-        metavar='OUTPUT_DIR',
+        '--output-dir',
         type=pathlib.Path,
-        help='XML output directory.',
+        default=pathlib.Path('output'),
+        help='Output directory for processed results [default: ./output].',
     )
     parser.add_argument(
         '--output-compression',
         choices={None, '7z', 'bz2', 'gzip'},
         required=False,
         default=None,
-        help='Output compression format.',
+        help='Output compression format [default: None].',
     )
     parser.add_argument(
         '--dry-run', '-n',
@@ -98,7 +102,13 @@ def get_args():
     parsed_args = parser.parse_args()
     if 'func' not in parsed_args:
         parser.print_usage()
-        parser.exit(1)
+        print('Error: no processor provided.', file=sys.stderr)
+        parser.exit(ERR_NO_FUNC)
+
+    if len(parsed_args.files) == 0:
+        parser.print_usage()
+        print('Error: no file provided.', file=sys.stderr)
+        parser.exit(ERR_NO_FILES)
 
     return parsed_args
 
@@ -106,9 +116,9 @@ def get_args():
 def main():
     """Main function."""
     args = get_args()
-    
-    if not args.output_dir_path.exists():
-        args.output_dir_path.mkdir(parents=True)
+
+    if not args.output_dir.exists():
+        args.output_dir.mkdir(parents=True)
 
     for input_file_path in args.files:
         utils.log("Analyzing {}...".format(input_file_path))
@@ -122,11 +132,11 @@ def main():
             stats_output = open(os.devnull, 'wt')
         else:
             pages_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.features.xml')),
+                path=str(args.output_dir/(basename + '.features.xml')),
                 compression=args.output_compression,
             )
             stats_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.stats.xml')),
+                path=str(args.output_dir/(basename + '.stats.xml')),
                 compression=args.output_compression,
             )
         args.func(
@@ -144,7 +154,6 @@ def main():
         stats_output.close()
 
         utils.log("Done Analyzing {}.".format(input_file_path))
-
 
 
 if __name__ == '__main__':
