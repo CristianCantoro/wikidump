@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-eval "$(docopts -V - -h - : "$@" <<EOF
+help="
 Usage: download.sh [-f FILTER] [-l LIST] [-n] [-o OUTDIR] [-v] -d DATE PROJECT
        download.sh [-v] --md5-only -d DATE PROJECT
        download.sh (-h | --help)
 
+Options:
       -d, --date DATE           Dump date (format: yyyymmdd).
       -f, --filter FILTER       Filter files names to download (defult: 'history').
       -l, --list LIST           List of files to download (default: download MD5 file).
@@ -18,45 +19,59 @@ Usage: download.sh [-f FILTER] [-l LIST] [-n] [-o OUTDIR] [-v] -d DATE PROJECT
 ----
 download.sh is part of wikidump.
 download.sh needs docopts for CLI argument parsing.
-EOF
-)"
+"
+version='0.2'
+
+eval "$(docopts -A args -h "$help" : "$@")"
+
+echo "The keys are: " ${!args[@]}
+echo "The values are: " ${args[@]}
+echo " "
+echo "Key <-> Value"
+echo "-------------"
+for i in "${!args[@]}"; do echo $i "<->" ${args[$i]}; done
+echo " "
 
 # CLI arguments
-DATE="$date"
-if [ -z "$date" ]; then
+PROJECT="${args['PROJECT']}"
+
+DATE="${args['--date']}"
+if [ -z "$DATE" ]; then
     DATE='last'
 fi
 
+output_dir="${args['--output-dir']}"
 OUTDIR="$output_dir/$PROJECT/$DATE"
 if [ -z "$output_dir" ]; then
     OUTDIR="dumps/$PROJECT/$DATE"
 fi
 
-LIST="$list"
-if [ -z "$list" ]; then
-    LIST="$MD5FILE"
-else
+LIST="${args['--list']}"
+md5_no_download=false
+if [ -z "$LIST" ]; then
     md5_no_download=true
 fi
 
-FILTER="$filter"
-if [ ! -z "$list" ]; then
+FILTER="${args['--filter']}"
+if [ -z "$FILTER" ]; then
     FILTER="history"
 fi
 
 
-if $verbose; then
+if ${args['--verbose']}; then
     echo "--- Download info ---"
-    echo "Project name: $PROJECT"
-    echo "Dump date: $DATE"
-    echo "Output directory: $OUTDIR"
-    echo "List: $LIST"
-    echo "Filter: $FILTER"
+    echo "  * PROJECT: $PROJECT"
+    echo "  * DATE: $DATE"
+    echo "  * OUTDIR: $OUTDIR"
+    echo "  * LIST: $LIST"
+    echo "  * FILTER: $FILTER"
+    echo "  "
+    echo "  - md5_no_download: $md5_no_download"
     echo "---"
 fi
 
 # global base URL
-BASE_URL="http://dumps.wikimedia.org/$PROJECT/$DATE/"
+BASE_URL="https://dumps.wikimedia.org/$PROJECT/$DATE/"
 
 # download the md5sum
 # https://dumps.wikimedia.org/itwiki/20151002/itwiki-20151002-md5sums.txt
@@ -67,13 +82,14 @@ if $md5_no_download; then
         echo ""
     fi
 else
+    MD5FILE="$PROJECT-$DATE-md5sums.txt"
+
     if $verbose; then
         echo ""
         echo "Dowloading MD5 sums file $BASE_URL/$MD5FILE ..."
         echo ""
     fi
 
-    MD5FILE="$PROJECT-$DATE-md5sums.txt"
     aria2c "$BASE_URL/$MD5FILE"
 
     if [ ! -z "$md5_only" ]; then
@@ -82,12 +98,16 @@ else
         echo "Dowloading MD5 sums done!"
         exit 0
     fi
+    LIST="$MD5FILE"
 fi
 
 # create OUTDIR and all the necessary intermediate directories
 mkdir -p "$OUTDIR"
 
 
+set -x
 cut -f 3 -d ' ' "$LIST" | grep "$FILTER" | \
   awk -v prefix=$BASE_URL '{print prefix $0}' | \
   xargs -n 1 aria2c -x 3 -s 3 -c --force-sequential --dir="$OUTDIR"
+
+exit 0

@@ -4,6 +4,7 @@ input/
 output/
 misc/
 tmp/
+lists/
 
 # ignore pyenv files
 .python-version
