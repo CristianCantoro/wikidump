@@ -9,10 +9,10 @@ MarkupSafe==0.23
 mediawiki-utilities==0.4.18
 more-itertools==6.0.0
 mwcites==0.2.0
-mwcli==0.0.1
+mwcli==0.0.3
 mwparserfromhell==0.4.2
-mwtypes==0.2.0
-mwxml==0.2.0
+mwtypes==0.4.0
+mwxml==0.3.6
 networkx==1.11
 para==0.0.5
 PyMySQL==0.7.1
